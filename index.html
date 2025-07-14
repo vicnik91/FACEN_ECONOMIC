@@ -1,0 +1,161 @@
+// Malla interactiva de Economía - UNAP
+// Incluye colores por tipo de curso, conteo de créditos, prerrequisitos, descarga PDF
+
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Download, RotateCcw } from "lucide-react";
+import { motion } from "framer-motion";
+
+const cursosPorCiclo = {
+  "Ciclo 1": [
+    {
+      codigo: "023B10002",
+      nombre: "MATEMÁTICA",
+      creditos: 4,
+      tipo: "cadena",
+      requisitos: [],
+    },
+    {
+      codigo: "023B10004",
+      nombre: "DERECHO CONSTITUCIONAL Y DERECHOS HUMANOS",
+      creditos: 3,
+      tipo: "nocadena",
+      requisitos: [],
+    },
+    {
+      codigo: "9080",
+      nombre: "NATACIÓN",
+      creditos: 1,
+      tipo: "extracurricular",
+      requisitos: [],
+    },
+    {
+      codigo: "023B10010",
+      nombre: "FUNDAMENTOS DE ADMINISTRACION",
+      creditos: 3,
+      tipo: "nocadena",
+      requisitos: [],
+    },
+    {
+      codigo: "023B10001",
+      nombre: "LENGUAJE, REDACCIÓN Y ORATORIA",
+      creditos: 4,
+      tipo: "nocadena",
+      requisitos: [],
+    },
+    {
+      codigo: "023B10008",
+      nombre: "FILOSOFIA",
+      creditos: 3,
+      tipo: "nocadena",
+      requisitos: [],
+    },
+    {
+      codigo: "9110",
+      nombre: "VOLEIBOL",
+      creditos: 1,
+      tipo: "extracurricular",
+      requisitos: [],
+    },
+    {
+      codigo: "023B10009",
+      nombre: "CREATIVIDAD E INNOVACION EMPRESARIAL",
+      creditos: 3,
+      tipo: "nocadena",
+      requisitos: [],
+    },
+  ]
+  // Puedes continuar agregando más ciclos aquí...
+};
+
+const colores = {
+  cadena: "bg-fuchsia-300",
+  nocadena: "bg-pink-300",
+  jalado: "bg-purple-400",
+  extracurricular: "bg-purple-200",
+};
+
+export default function MallaEconomia() {
+  const [estadoCursos, setEstadoCursos] = useState({});
+
+  const toggleCurso = (codigo) => {
+    setEstadoCursos((prev) => {
+      const actual = prev[codigo] || { aprobado: false, veces: 0, estado: "" };
+      if (actual.estado === "jalado") {
+        return { ...prev, [codigo]: { ...actual, veces: actual.veces + 1 } };
+      }
+      return {
+        ...prev,
+        [codigo]: { ...actual, aprobado: !actual.aprobado },
+      };
+    });
+  };
+
+  const marcarJalado = (codigo) => {
+    setEstadoCursos((prev) => ({
+      ...prev,
+      [codigo]: { aprobado: false, veces: 1, estado: "jalado" },
+    }));
+  };
+
+  const restaurar = () => setEstadoCursos({});
+
+  const totalAprobados = Object.entries(estadoCursos).reduce((acc, [codigo, estado]) => {
+    const ciclo = Object.values(cursosPorCiclo).flat();
+    const curso = ciclo.find((c) => c.codigo === codigo);
+    if (estado.aprobado && curso) return acc + curso.creditos;
+    return acc;
+  }, 0);
+
+  return (
+    <div className="p-6 font-serif text-pink-950">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl italic font-bold">Malla Curricular - Economía UNAP</h1>
+        <div className="space-x-2">
+          <Button variant="outline" onClick={() => window.print()}><Download className="w-4 h-4 mr-2" /> Descargar PDF</Button>
+          <Button variant="outline" onClick={restaurar}><RotateCcw className="w-4 h-4 mr-2" /> Restaurar</Button>
+        </div>
+      </div>
+      <p className="italic mb-4">Créditos aprobados: <span className="font-bold">{totalAprobados}</span></p>
+
+      {Object.entries(cursosPorCiclo).map(([ciclo, cursos]) => (
+        <div key={ciclo} className="mb-6">
+          <h2 className="text-xl italic font-semibold mb-2">{ciclo}</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {cursos.map((curso) => {
+              const estado = estadoCursos[curso.codigo] || {};
+              const clase = estado.estado === "jalado"
+                ? colores.jalado
+                : colores[curso.tipo] || "bg-gray-100";
+              return (
+                <motion.div whileHover={{ scale: 1.02 }} key={curso.codigo}>
+                  <Card
+                    className={`cursor-pointer ${clase} rounded-2xl p-3 shadow-md`}
+                    onClick={() => toggleCurso(curso.codigo)}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      marcarJalado(curso.codigo);
+                    }}
+                  >
+                    <CardContent className="p-0">
+                      <p className={`italic ${estado.aprobado ? "line-through" : ""}`}>
+                        {curso.nombre} ({curso.creditos} cr)
+                      </p>
+                      {estado.estado === "jalado" && (
+                        <p className="text-sm italic">Llevando: {estado.veces} vez/veces</p>
+                      )}
+                      {curso.requisitos.length > 0 && (
+                        <p className="text-xs italic mt-1">Prerequisitos: {curso.requisitos.join(", ")}</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
